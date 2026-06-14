@@ -1,10 +1,10 @@
 <div align="center">
- <h1> Nav3 Generator <h1>
+ <h1> Nav3 Generator </h1>
 </div>
 <div align="center">
 <a href="https://opensource.org/licenses/Apache-2.0"><img alt="License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"/></a>
-<img src="https://img.shields.io/badge/Platform-Kotlin%20Multiplatform-blueviolet.svg" />
-<img src="https://img.shields.io/badge/KSP-Supported-brightgreen.svg" />
+<img alt="Platform" src="https://img.shields.io/badge/Platform-Kotlin%20Multiplatform-blueviolet.svg" />
+<img alt="KSP" src="https://img.shields.io/badge/KSP-Supported-brightgreen.svg" />
 <a href="https://github.com/the-best-is-best/"><img alt="Profile" src="https://img.shields.io/badge/github-%23181717.svg?&style=for-the-badge&logo=github&logoColor=white" height="20"/></a>
 </div>
 
@@ -25,25 +25,25 @@ It includes:
 
 # Versions
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.the-best-is-best/nav-compiler-api)](https://search.maven.org/artifact/io.github.the-best-is-best/nav-compiler-api)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.the-best-is-best/nav3-annotations)](https://search.maven.org/artifact/io.github.the-best-is-best/nav3-annotations)
 
 # 📦 Setup
 
 ## Add to `commonMain` dependencies
 
 ```kotlin
-implementation("io.github.the-best-is-best:nav-compiler-api:1.0.0-rc.1")
+implementation("io.github.the-best-is-best:nav3-annotations:1.0.0-rc.1")
 ```
 
 Add the KSP processor to your project:
 
 ```kotlin
 dependencies {
-    add("kspCommonMainMetadata", "io.github.the-best-is-best:nav-compiler:1.0.0-rc.1")
-    // Add for each target if needed
-    add("kspAndroid", "io.github.the-best-is-best:nav-compiler:1.0.0-rc.1")
-    add("kspIosArm64", "io.github.the-best-is-best:nav-compiler:1.0.0-rc.1")
-    add("kspIosSimulatorArm64", "io.github.the-best-is-best:nav-compiler:1.0.0-rc.1")
+    add("kspCommonMainMetadata", "io.github.the-best-is-best:nav3-processor:1.0.0-rc.1")
+    // Add for each target to ensure code visibility in IDE
+    add("kspAndroid", "io.github.the-best-is-best:nav3-processor:1.0.0-rc.1")
+    add("kspIosArm64", "io.github.the-best-is-best:nav3-processor:1.0.0-rc.1")
+    add("kspIosSimulatorArm64", "io.github.the-best-is-best:nav3-processor:1.0.0-rc.1")
 }
 ```
 
@@ -59,7 +59,7 @@ dependencies {
 
 ## `@NavGenerate`
 
-### Attach to a sealed interface to mark it as the base for generated routes.
+### Attach to an interface to mark it as the base for generated routes.
 
 ```kotlin
 @NavGenerate
@@ -75,9 +75,9 @@ interface Routes : NavKey
 ```kotlin
 @Target(AnnotationTarget.FUNCTION)
 annotation class NavDestination(
-    val name: String = "",      // Custom name for the route
+    val name: String = "",      // Custom name for the route (e.g. "Splash")
     val group: String = "",     // Optional nesting group (e.g. "Secure")
-    val wrapper: String = ""    // Optional wrapper function name
+    val wrapper: String = ""    // Optional wrapper function name (e.g. "SecureWrapper")
 )
 ```
 
@@ -137,6 +137,7 @@ fun App() {
 ```kotlin
 kotlin {
     sourceSets.named("commonMain").configure {
+        // Ensure the IDE sees generated code
         kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
     }
 }
@@ -149,6 +150,7 @@ kotlin {
 - **Generated code path**: `build/generated/ksp/`
 - **Full Type-Safety**: Any change in screen parameters is immediately reflected in the generated routes and actions.
 - **Zero Manual Mapping**: No more manual `polymorphic { subclass(...) }` or huge `when` blocks.
+- **Wrapper Support**: The `wrapper` function must take a single `@Composable () -> Unit` parameter named `content`.
 
 ---
 

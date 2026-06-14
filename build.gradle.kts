@@ -9,4 +9,10 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.kotlinSerialization) apply false
+    alias(libs.plugins.mavenPublish) apply false
+
+}
+
+subprojects {
+    apply(from = "${rootProject.projectDir}/gradle/publish-config.gradle.kts")
 }
