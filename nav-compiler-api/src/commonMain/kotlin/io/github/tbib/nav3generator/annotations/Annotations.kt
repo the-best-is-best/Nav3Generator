@@ -2,10 +2,6 @@ package io.github.tbib.nav3generator.annotations
 
 import kotlin.reflect.KClass
 
-/**
- * Annotate your base navigation interface with this.
- * KSP will generate route classes for all @NavDestination annotated functions.
- */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.SOURCE)
 annotation class NavGenerate

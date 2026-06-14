@@ -18,7 +18,7 @@ It includes:
 - **Auto-Serialization**: Generates `SerializersModule` for polymorphic navigation state saving.
 - **Boilerplate-Free Mapping**: Generates the entire `when(key)` block for `NavDisplay`.
 - **Smart Parameter Mapping**: Automatically maps Route data to Screen parameters.
-- **CompositionLocal Actions**: Automatically gathers screen callbacks into a single, type-safe `Actions` class.
+- **Per-Screen Actions**: Automatically generates type-safe `Actions` classes and `CompositionLocals` for screen callbacks.
 - **Screen Wrappers**: Easily apply common wrappers (like ViewModels or Providers) to groups of screens via annotations.
 
 ---
@@ -32,18 +32,18 @@ It includes:
 ## Add to `commonMain` dependencies
 
 ```kotlin
-implementation("io.github.the-best-is-best:nav3-annotations:1.0.0-rc.1")
+implementation("io.github.the-best-is-best:nav3-annotations:1.0.0")
 ```
 
 Add the KSP processor to your project:
 
 ```kotlin
 dependencies {
-    add("kspCommonMainMetadata", "io.github.the-best-is-best:nav3-processor:1.0.0-rc.1")
+    add("kspCommonMainMetadata", "io.github.the-best-is-best:nav3-processor:1.0.0")
     // Add for each target to ensure code visibility in IDE
-    add("kspAndroid", "io.github.the-best-is-best:nav3-processor:1.0.0-rc.1")
-    add("kspIosArm64", "io.github.the-best-is-best:nav3-processor:1.0.0-rc.1")
-    add("kspIosSimulatorArm64", "io.github.the-best-is-best:nav3-processor:1.0.0-rc.1")
+    add("kspAndroid", "io.github.the-best-is-best:nav3-processor:1.0.0")
+    add("kspIosArm64", "io.github.the-best-is-best:nav3-processor:1.0.0")
+    add("kspIosSimulatorArm64", "io.github.the-best-is-best:nav3-processor:1.0.0")
 }
 ```
 
@@ -98,8 +98,8 @@ interface Routes : NavKey
 @Composable
 @NavDestination(name = "Home", group = "Secure", wrapper = "SecureWrapper")
 fun HomeScreen(
-    x: Int,                         // Data: Automatically added to RoutesGenerated.Secure.Home
-    onDialogOpen: (Boolean) -> Unit // Action: Automatically added to RoutesActions
+    x: Int,                         // Data: Automatically added to RoutesDestinations.Secure.Home
+    onDialogOpen: (Boolean) -> Unit // Action: Automatically added to RoutesHomeActions
 ) {
     Text("Home Screen with value $x")
 }
@@ -110,20 +110,20 @@ fun HomeScreen(
 ```kotlin
 @Composable
 fun App() {
-    // rememberRoutesBackStack and RoutesGenerated are auto-generated
-    val backStack = rememberRoutesBackStack(initialKey = RoutesGenerated.Splash)
+    // rememberRoutesBackStack and RoutesDestinations are auto-generated
+    val backStack = rememberRoutesBackStack(initialKey = RoutesDestinations.Splash)
     var isDialogOpen by remember { mutableStateOf(false) }
 
-    // RoutesActions is auto-generated based on all @NavDestination parameters
-    val actions = RoutesActions(
+    // RoutesHomeActions is auto-generated specifically for HomeScreen
+    val homeActions = RoutesHomeActions(
         onDialogOpen = { isDialogOpen = it },
         onBack = { backStack.removeLastOrNull() }
     )
 
-    CompositionLocalProvider(LocalRoutesActions provides actions) {
+    CompositionLocalProvider(LocalRoutesHomeActions provides homeActions) {
         NavDisplay<Routes>(
             backStack = backStack,
-            onBack = { actions.onBack() },
+            onBack = { backStack.removeLastOrNull() },
             entryProvider = { key -> routesEntryProvider(key) } // Auto-generated mapper
         )
     }
