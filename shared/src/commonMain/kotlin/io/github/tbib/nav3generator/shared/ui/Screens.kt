@@ -8,15 +8,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import io.github.tbib.nav3generator.annotations.NavDestination
 
-val LocalShowSheet = staticCompositionLocalOf { false }
-
-@Composable
-fun SecureWrapper(content: @Composable () -> Unit) {
-    val isSheetVisible = true 
-    CompositionLocalProvider(LocalShowSheet provides isSheetVisible) {
-        content()
-    }
-}
 
 @Composable
 @NavDestination(name = "Splash")

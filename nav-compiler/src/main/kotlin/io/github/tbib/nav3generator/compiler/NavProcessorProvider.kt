@@ -6,6 +6,6 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
 class NavProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        return NavProcessor(environment.codeGenerator)
+        return NavProcessor(environment.codeGenerator, environment.logger)
     }
 }

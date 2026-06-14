@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -13,6 +14,8 @@ kotlin {
 }
 dependencies {
     implementation(projects.shared)
+    add("kspDebug", project(":nav-compiler"))
+    add("kspRelease", project(":nav-compiler"))
 
     implementation(libs.androidx.activity.compose)
 

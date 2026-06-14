@@ -32,18 +32,18 @@ It includes:
 ## Add to `commonMain` dependencies
 
 ```kotlin
-implementation("io.github.the-best-is-best:nav3-annotations:1.0.0")
+implementation("io.github.the-best-is-best:nav3-annotations:1.0.1")
 ```
 
 Add the KSP processor to your project:
 
 ```kotlin
 dependencies {
-    add("kspCommonMainMetadata", "io.github.the-best-is-best:nav3-processor:1.0.0")
+    add("kspCommonMainMetadata", "io.github.the-best-is-best:nav3-processor:1.0.1")
     // Add for each target to ensure code visibility in IDE
-    add("kspAndroid", "io.github.the-best-is-best:nav3-processor:1.0.0")
-    add("kspIosArm64", "io.github.the-best-is-best:nav3-processor:1.0.0")
-    add("kspIosSimulatorArm64", "io.github.the-best-is-best:nav3-processor:1.0.0")
+    add("kspAndroid", "io.github.the-best-is-best:nav3-processor:1.0.1")
+    add("kspIosArm64", "io.github.the-best-is-best:nav3-processor:1.0.1")
+    add("kspIosSimulatorArm64", "io.github.the-best-is-best:nav3-processor:1.0.1")
 }
 ```
 

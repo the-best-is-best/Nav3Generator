@@ -32,7 +32,7 @@ kotlin {
         browser()
     }
     
-    android {
+    androidLibrary {
        namespace = "io.github.tbib.nav3generator.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
@@ -40,54 +40,28 @@ kotlin {
        compilerOptions {
            jvmTarget = JvmTarget.JVM_11
        }
-       androidResources {
-           enable = true
-       }
-       withHostTest {
-           isIncludeAndroidResources = true
-       }
     }
     
     sourceSets {
-        androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-        }
         commonMain.dependencies {
             implementation(project(":nav-compiler-api"))
-            implementation(libs.navigation3) // This is the Compose Multiplatform Navigation 3 dependency
+            implementation(libs.navigation3)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
         }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-        }
-        jsMain.dependencies {
-            implementation(libs.wrappers.browser)
-        }
-
-        sourceSets.named("commonMain").configure {
-            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+        
+        commonMain.configure {
+            kotlin.srcDir(layout.buildDirectory.dir("generated/ksp/metadata/commonMain/kotlin"))
         }
     }
 }
 
 dependencies {
-    // Example: Add KSP for each target to generate navigation code
     val navCompiler = project(":nav-compiler")
     add("kspCommonMainMetadata", navCompiler)
-//    add("kspAndroid", navCompiler)
-//    add("kspIosArm64", navCompiler)
-//    add("kspIosSimulatorArm64", navCompiler)
-//    add("kspJvm", navCompiler)
-//    add("kspJs", navCompiler)
-//    add("kspWasmJs", navCompiler)
-
-    androidRuntimeClasspath(libs.compose.uiTooling)
-}
+ }
