@@ -58,9 +58,10 @@ class NavProcessor(
     ) {
         val packageName = navInterface.packageName.asString()
         val interfaceName = navInterface.simpleName.asString()
-        val generatedInterfaceName = "${interfaceName}Generated"
+        val generatedName = "${interfaceName}Destinations"
+        val fileName = generatedName
 
-        val fileBuilder = FileSpec.builder(packageName, generatedInterfaceName)
+        val fileBuilder = FileSpec.builder(packageName, fileName)
         
         fileBuilder.addImport("androidx.navigation3.runtime", "NavEntry", "NavKey", "rememberNavBackStack", "NavBackStack")
         fileBuilder.addImport("androidx.navigation3.ui", "NavDisplay")
@@ -71,10 +72,10 @@ class NavProcessor(
 
         val routesClassName = navInterface.toClassName()
         val navKeyClassName = ClassName("androidx.navigation3.runtime", "NavKey")
-        val generatedInterfaceType = ClassName(packageName, generatedInterfaceName)
+        val generatedInterfaceType = ClassName(packageName, generatedName)
 
-        // 1. RoutesGenerated Sealed Interface
-        val generatedInterface = TypeSpec.interfaceBuilder(generatedInterfaceName)
+        // 1. Destinations Sealed Interface
+        val generatedInterface = TypeSpec.interfaceBuilder(generatedName)
             .addModifiers(KModifier.SEALED)
             .addSuperinterface(routesClassName)
 
@@ -105,7 +106,7 @@ class NavProcessor(
 
             routeSpec.addAnnotation(ClassName("kotlinx.serialization", "Serializable"))
             routeSpec.addSuperinterface(generatedInterfaceType)
-            routeSpec.addSuperinterface(ClassName("androidx.navigation3.runtime", "NavKey"))
+            routeSpec.addSuperinterface(navKeyClassName)
 
             if (!groupName.isNullOrBlank()) {
                 groupSpecs.getOrPut(groupName) { 
@@ -113,6 +114,28 @@ class NavProcessor(
                 }.addType(routeSpec.build())
             } else {
                 generatedInterface.addType(routeSpec.build())
+            }
+
+            // 2. Actions and Local for each Screen (if needed)
+            val callbackParams = dest.parameters.filter { it.type.resolve().isFunctionTypeCustom() }
+            if (callbackParams.isNotEmpty()) {
+                val actionsClassName = "${interfaceName}${routeName}Actions"
+                val actionsClass = TypeSpec.classBuilder(actionsClassName).addModifiers(KModifier.PUBLIC, KModifier.DATA)
+                val actionsConstructor = FunSpec.constructorBuilder()
+                callbackParams.forEach { param ->
+                    val name = param.name?.asString() ?: ""
+                    val type = param.type.toTypeName()
+                    actionsConstructor.addParameter(name, type)
+                    actionsClass.addProperty(PropertySpec.builder(name, type).initializer(name).build())
+                }
+                actionsClass.primaryConstructor(actionsConstructor.build())
+                fileBuilder.addType(actionsClass.build())
+
+                fileBuilder.addProperty(PropertySpec.builder("Local${actionsClassName}", 
+                    ClassName("androidx.compose.runtime", "ProvidableCompositionLocal").parameterizedBy(ClassName(packageName, actionsClassName)))
+                    .addModifiers(KModifier.PUBLIC)
+                    .initializer("staticCompositionLocalOf { error(\"No $actionsClassName provided\") }")
+                    .build())
             }
         }
         groupSpecs.values.forEach { generatedInterface.addType(it.build()) }
@@ -131,36 +154,13 @@ class NavProcessor(
                          val groupName = annotation?.arguments?.find { it.name?.asString() == "group" }?.value as? String
                          val routeName = if (!customName.isNullOrBlank()) customName else dest.simpleName.asString().removeSuffix("Screen")
                          val fullRoutePath = if (!groupName.isNullOrBlank()) "$groupName.$routeName" else routeName
-                         addStatement("subclass(%L.%L::class, %L.%L.serializer())", generatedInterfaceName, fullRoutePath, generatedInterfaceName, fullRoutePath)
+                         addStatement("subclass(%L.%L::class, %L.%L.serializer())", generatedName, fullRoutePath, generatedName, fullRoutePath)
                     }
                     endControlFlow().endControlFlow()
                 }).build())
             .build())
         generatedInterface.addType(companionBuilder.build())
         fileBuilder.addType(generatedInterface.build())
-
-        // 2. Actions logic
-        val callbackParams = destinations.flatMap { it.parameters }
-            .filter { it.type.resolve().isFunctionTypeCustom() }
-            .distinctBy { it.name?.asString() }
-
-        val actionsClassName = "${interfaceName}Actions"
-        val actionsClass = TypeSpec.classBuilder(actionsClassName).addModifiers(KModifier.PUBLIC, KModifier.DATA)
-        val actionsConstructor = FunSpec.constructorBuilder()
-        callbackParams.forEach { param ->
-            val name = param.name?.asString() ?: ""
-            val type = param.type.toTypeName()
-            actionsConstructor.addParameter(name, type)
-            actionsClass.addProperty(PropertySpec.builder(name, type).initializer(name).build())
-        }
-        actionsClass.primaryConstructor(actionsConstructor.build())
-        fileBuilder.addType(actionsClass.build())
-
-        fileBuilder.addProperty(PropertySpec.builder("Local${actionsClassName}", 
-            ClassName("androidx.compose.runtime", "ProvidableCompositionLocal").parameterizedBy(ClassName(packageName, actionsClassName)))
-            .addModifiers(KModifier.PUBLIC)
-            .initializer("staticCompositionLocalOf { error(\"No $actionsClassName provided\") }")
-            .build())
 
         // 3. Helper
         fileBuilder.addFunction(FunSpec.builder("remember${interfaceName}BackStack")
@@ -170,13 +170,13 @@ class NavProcessor(
             .addCode(buildCodeBlock {
                 beginControlFlow("val config = remember")
                 beginControlFlow("SavedStateConfiguration")
-                addStatement("serializersModule = ${generatedInterfaceName}.${interfaceName}Serializers")
+                addStatement("serializersModule = ${generatedName}.${interfaceName}Serializers")
                 endControlFlow().endControlFlow()
                 addStatement("@Suppress(\"UNCHECKED_CAST\")")
                 addStatement("return rememberNavBackStack(config, initialKey) as NavBackStack<%T>", routesClassName)
             }).build())
 
-        // 4. routesEntryProvider with Smart Imports
+        // 4. routesEntryProvider
         val entryProviderFun = FunSpec.builder("${interfaceName.replaceFirstChar { it.lowercase() }}EntryProvider")
             .addModifiers(KModifier.PUBLIC).addParameter("key", routesClassName)
             .returns(ClassName("androidx.navigation3.runtime", "NavEntry").parameterizedBy(routesClassName))
@@ -190,10 +190,9 @@ class NavProcessor(
             val routeName = if (!customName.isNullOrBlank()) customName else dest.simpleName.asString().removeSuffix("Screen")
             val fullRoutePath = if (!groupName.isNullOrBlank()) "$groupName.$routeName" else routeName
 
-            entryProviderFun.beginControlFlow("is %L.%L ->", generatedInterfaceName, fullRoutePath)
+            entryProviderFun.beginControlFlow("is %L.%L ->", generatedName, fullRoutePath)
             entryProviderFun.beginControlFlow("NavEntry(key)")
             
-            // Smart Wrapper Import using found ClassName
             if (!wrapperName.isNullOrBlank()) {
                 val wrapperClassName = allFunctions[wrapperName]
                 if (wrapperClassName != null) {
@@ -204,6 +203,8 @@ class NavProcessor(
             }
 
             val args = mutableListOf<String>()
+            val actionsClassName = "${interfaceName}${routeName}Actions"
+
             dest.parameters.forEach { param ->
                 val name = param.name?.asString() ?: ""
                 if (param.type.resolve().isFunctionTypeCustom()) {
@@ -213,7 +214,6 @@ class NavProcessor(
                 }
             }
             
-            // Smart Screen Import
             val screenClassName = ClassName(dest.packageName.asString(), dest.simpleName.asString())
             entryProviderFun.addStatement("%T(%L)", screenClassName, args.joinToString(", "))
             
